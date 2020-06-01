@@ -562,7 +562,6 @@ def delete_language(request, language_id):
 def update_dedup_service(obj):
 
     if obj.status < 2:
-        print("***update***")
         dedup_schema = 'LIS_Two'
         dedup_params = {"titulo": obj.title, "url": obj.link}
 

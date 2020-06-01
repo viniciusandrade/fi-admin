@@ -6,10 +6,11 @@ from django.utils.translation import string_concat
 from django.forms.models import inlineformset_factory
 from django.contrib.contenttypes.generic import generic_inlineformset_factory
 
-from django.forms import widgets
 from django import forms
+from django.forms import widgets
 from form_utils.forms import BetterModelForm, FieldsetCollection
 from django.conf import settings
+from django.core.cache import cache
 
 from main.models import Descriptor
 from utils.forms import BaseDescriptorInlineFormSet
@@ -89,44 +90,32 @@ class BiblioRefForm(BetterModelForm):
         # load serial titles for serial analytic
         if self.document_type == 'S' and not self.reference_source:
             title_objects = Title.objects.all()
+            title_serial_list = []
 
-            # populate choice title list based on user profile
+            # create title_serial_list based on user profile
             if self.user_role == 'editor_llxp':
                 # for LILACS Express editor return only serials with same editor_cc_code of current user
                 titles_from_this_editor = title_objects.filter(editor_cc_code=self.user_data['user_cc']).exclude(indexer_cc_code='')
                 titles_from_this_editor = titles_from_this_editor.order_by('shortened_title')
-                title_list = [(t.shortened_title, "%s|%s" % (t.shortened_title, t.issn)) for t in titles_from_this_editor]
+                title_serial_list = [(t.shortened_title, "%s|%s" % (t.shortened_title, t.issn)) for t in titles_from_this_editor]
             else:
-                # for regular users return a title list splited in two parts:
-                # 1- journals that is indexed by the user center code using index range relation model
-                cc_code = self.user_data['user_cc']
-                titles_indexed_by_this_cc = title_objects.filter(indexrange__indexer_cc_code=cc_code).order_by('shortened_title').distinct()
+                # check if title_serial_list is already in cache
+                title_serial_list = cache.get('title_serial_list')
 
-                # 2- titles that has indexed by other centers
-                # -exclude titles that has not records in indexrange and then exclude titles from the current cc (alread listed in titles_indexed_by_this_cc)
-                titles_indexed_by_others = title_objects.exclude(indexrange__isnull=True).exclude(indexrange__indexer_cc_code=cc_code)
-                # -filter by titles thas has at least one indexer_cc_code (diff from empty string)
-                titles_indexed_by_others = titles_indexed_by_others.filter(indexrange__indexer_cc_code__gt='').distinct()
-                # -sort by short title
-                titles_indexed_by_others = titles_indexed_by_others.order_by('shortened_title')
+                if not title_serial_list:
+                    # exclude titles that has not records in indexrange
+                    titles_list_indexed = title_objects.exclude(indexrange__isnull=True)
+                    # filter by titles thas has at least one indexer_cc_code (diff from empty string)
+                    titles_list_indexed = titles_list_indexed.filter(indexrange__indexer_cc_code__gt='').distinct()
+                    # sort by short title
+                    titles_list_indexed = titles_list_indexed.order_by('shortened_title')
 
-                title_list = []
-                title_list_indexer_code = [(t.shortened_title, "%s|%s" % (t.shortened_title, t.issn)) for t in titles_indexed_by_this_cc]
-                title_list_other = [(t.shortened_title, "%s|%s" % (t.shortened_title, t.issn)) for t in titles_indexed_by_others]
+                    # create a list contains tuple with shortened_title (label) and shortened_title|issn (value)
+                    title_serial_list = [(t.shortened_title, "%s|%s" % (t.shortened_title, t.issn)) for t in titles_list_indexed]
 
-                separator = u' ────────── '
-                label_indexed = separator + __('Indexed by your cooperative center') + separator
-                label_not_indexed = separator + __('Indexed by other cooperative centers') + separator
+                    cache.set('title_serial_list', title_serial_list, None)
 
-                if title_list_indexer_code:
-                    title_list.extend([('', label_indexed)])
-                    title_list.extend(title_list_indexer_code)
-                    title_list.extend([('', '')])
-                title_list.extend([('', label_not_indexed)])
-                title_list.extend(title_list_other)
-
-            self.fields['title_serial'] = forms.ChoiceField(choices=title_list, required=False)
-            self.fields['title_serial_other'] = forms.CharField(required=False)
+            self.title_serial_list = title_serial_list
 
         if 'publication_country' in self.fields:
             # divide list of countries in Latin America & Caribbean and Others
@@ -514,28 +503,18 @@ class BiblioRefForm(BetterModelForm):
         return data
 
     def clean_title_serial(self):
-        data = self.cleaned_data['title_serial']
+        data = self.cleaned_data.get('title_serial')
+        data = data.strip()
 
-        if self.document_type == 'S':
-            title_serial = self.cleaned_data.get('title_serial')
-            title_serial_other = self.data.get('title_serial_other')
-
-            if title_serial_other and self.is_LILACS:
-                self.add_error('title_serial', _("For LILACS references is mandatory select a journal from the list"))
-
-            if title_serial and title_serial_other and not self.is_LILACS:
-                self.add_error('title_serial', _("Please choose one journal from the list or use blank to inform other journal title"))
-
-            if not title_serial_other and not title_serial:
+        if self.is_visiblefield('title_serial'):
+            if not data:
                 self.add_error('title_serial', _("Mandatory"))
-
-            if title_serial_other and not self.is_LILACS:
-                data = title_serial_other
             else:
-                data = title_serial
-        else:
-            if self.is_visiblefield('title_serial') and not data:
-                self.add_error('title_serial', _("Mandatory"))
+                if self.document_type == 'S' and self.is_LILACS:
+                    valid_title_list = [short_title for short_title, value in self.title_serial_list]
+
+                    if not data in valid_title_list:
+                        self.add_error('title_serial', _("For LILACS sources, it is mandatory to inform a journal indexed in LILACS"))
 
         return data
 

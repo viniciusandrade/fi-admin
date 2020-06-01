@@ -8,6 +8,9 @@
 
 {% block extrahead %}
 <link href="{% static "css/multiple-select.min.css" %}" rel="stylesheet">
+{% if form.document_type == 'S' %}
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+{% endif %}
 {% endblock %}
 
 {% block title %}{% trans "Edit Source" %}{% endblock %}
@@ -213,6 +216,10 @@
    <script src="{% static 'js/biblioref.js' %}"></script>
    <script src="{% static 'js/classification.js' %}"></script>
    <script src="{% static 'js/multiple-select.min.js' %}"></script>
+   {% if form.document_type == 'S' %}
+   <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+   {% endif %}
+
 
    <script id="itensTemplate" type="text/x-jsrender">
         <li>
@@ -364,6 +371,27 @@
             });
 
             $('#id_indexed_database, #id_publication_type, #id_check_tags').multipleSelect({selectAll: false, minimumCountSelected: 6, filter: true});
+
+            {% if form.document_type == 'S' %}
+            // autocomplete for serial title
+            var title_serial_list = [{% for label, value in form.title_serial_list %}{label:"{{label}}", value: "{{value}}"},{% endfor %}];
+            $("#id_title_serial").autocomplete( {
+                source: title_serial_list,
+                select: function( event, ui ) {
+                    // each item has the serial title and issn separated by |
+                    var title_data = ui.item.value.split('|');
+
+                    // update title field
+                    this.value = title_data[0];
+                    // update issn field
+                    serial_issn = title_data[1];
+                    $("#id_issn").val(serial_issn);
+
+                    return false;
+                }
+            });
+            {% endif %}
+
         });
 
         function decs_search(obj){
