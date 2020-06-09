@@ -72,7 +72,12 @@ class InstitutionIndex(indexes.SearchIndex, indexes.Indexable):
             else:
                 contact_phone = contact.phone_number
 
-            contact_details = [contact.name, contact.email, contact_phone]
+            if contact.job_title:
+                contact_name = u"{0} ({1})".format(contact.name, contact.job_title)
+            else:
+                contact_name = contact.name
+
+            contact_details = [contact_name, contact.email, contact_phone]
             # remove empty data
             contact_details = filter(None, contact_details)
 
@@ -133,21 +138,20 @@ class InstitutionIndex(indexes.SearchIndex, indexes.Indexable):
             adm = None
 
         if adm:
-            #adm_type_list = [line.strip() for line in adm.type_history.split('\r\n') if line.strip()]
             adm_type_list = [type.name for type in adm.type.all()]
             if 'CCR' in adm_type_list:
                 type_list.append('CoordinatingCentersRg')
             if 'CCN' in adm_type_list:
                 type_list.append('CoordinatingCentersNc')
-            if 'REDEBR/CC' or 'REDEAL/CC' or 'MEDCARIB/CC' in adm_type_list:
+            if any(value in adm_type_list for value in ['REDEBR/CC', 'REDEAL/CC', 'MEDCARIB/CC']):
                 type_list.append('CooperatingCenters')
             if 'LILACS' in adm_type_list:
                 type_list.append('CooperatingCentersLILACS')
             if 'LEYES' in adm_type_list:
                 type_list.append('CooperatingCentersLEYES')
-            if  'REDEBR/UP' or 'REDEAL/UP' or 'MEDCARIB/UP' in adm_type_list:
+            if  any(value in adm_type_list for value in ['REDEBR/UP', 'REDEAL/UP', 'MEDCARIB/UP']):
                 type_list.append('ParticipantsUnits')
-            if  'REDEAL' or 'REDEBR' or 'EPORT' or 'MEDCARIB' in adm_type_list:
+            if  any(value in adm_type_list for value in ['REDEAL', 'REDEBR', 'EPORT', 'MEDCARIB']):
                 type_list.append('VHLNetwork')
 
         return type_list
@@ -161,7 +165,6 @@ class InstitutionIndex(indexes.SearchIndex, indexes.Indexable):
             adm = None
 
         if adm:
-            #type_list = [line.strip() for line in adm.type_history.split('\r\n') if line.strip()]
             adm_type_list = [type.name for type in adm.type.all()]
             if 'MEDCARIB' in adm_type_list:
                 type_list.append('MedCarib')
