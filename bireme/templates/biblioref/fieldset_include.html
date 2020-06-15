@@ -37,6 +37,8 @@
                                 {% if not field.is_hidden or field.field|fieldtype == 'JSONFormField' %}
                                     {% if field.field|fieldtype == 'BooleanField' %}
                                         <span>{{ field.label }}</span>
+                                    {% elif field.name == 'title_serial' %}
+                                        {% trans 'Shortened title' %}
                                     {% else %}
                                         <label for="{{ field.auto_id }}">
                                             {% if field.name in help_fields %}
@@ -112,6 +114,13 @@
                             {% if field.name == 'publication_type' or field.name == 'check_tags' %}
                                 <a href="javascript:consult_DeCS('{{ field.auto_id }}', '{{LANGUAGE_CODE|slice:":2"}}')" >{% trans "Show DeCS definition" %}</a>
                             {% endif %}
+
+                            {% if field.name == 'issn' %}
+                                <span id="search_issn" style="display: none;">
+                                    <a href="https://portal.issn.org/" target="_blank" >{% trans "Search ISSN" %}</a>
+                                </span>
+                            {% endif %}
+
 
                         {% endif %}
                     </li>

@@ -392,6 +392,14 @@
             });
             {% endif %}
 
+            $("#id_issn").focus(function() {
+                if ( !this.value ){
+                    $('#search_issn').show();
+                }else{
+                    $('#search_issn').hide();
+                }
+            });
+
         });
 
         function decs_search(obj){
