@@ -111,7 +111,7 @@ class BiblioRefForm(BetterModelForm):
                     titles_list_indexed = titles_list_indexed.order_by('shortened_title')
 
                     # create a list contains tuple with shortened_title (label) and shortened_title|issn (value)
-                    title_serial_list = [(t.shortened_title, "%s|%s" % (t.shortened_title, t.issn)) for t in titles_list_indexed]
+                    title_serial_list = [("%s  |  %s" % (t.title, t.shortened_title), "%s|%s" % (t.shortened_title, t.issn)) for t in titles_list_indexed]
 
                     cache.set('title_serial_list', title_serial_list, None)
 
