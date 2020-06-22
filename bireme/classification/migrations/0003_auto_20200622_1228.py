@@ -9,10 +9,25 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('classification', '0003_auto_20200617_1058'),
+        ('classification', '0002_collection_country'),
     ]
 
     operations = [
+        migrations.AddField(
+            model_name='collection',
+            name='community_flag',
+            field=models.BooleanField(default=False, verbose_name='Community?'),
+        ),
+        migrations.AddField(
+            model_name='collection',
+            name='type',
+            field=models.SmallIntegerField(default=0, null=True, verbose_name='Collection type', choices=[(0, 'Category'), (1, 'Theme')]),
+        ),
+        migrations.AddField(
+            model_name='collection',
+            name='updated_time',
+            field=models.DateTimeField(auto_now=True, verbose_name='Last update', null=True),
+        ),
         migrations.AddField(
             model_name='relationship',
             name='updated_by',
