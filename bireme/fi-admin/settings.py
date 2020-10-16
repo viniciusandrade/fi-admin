@@ -292,6 +292,7 @@ DEFAULT_COOPERATIVE_CENTER = 'BR1.1'
 BIREMELOGIN_SERVICE = ''
 
 EXPOSE_API_ONLY = int(os.environ.get("EXPOSE_API_ONLY"), 0)
+MAX_EXPORT_API_LIMIT = int(os.environ.get("MAX_EXPORT_API_LIMIT"), 100)
 
 HAYSTACK_SIGNAL_PROCESSOR = os.environ.get("HAYSTACK_SIGNAL_PROCESSOR")
 
@@ -348,5 +349,3 @@ class DisableMigrations(object):
 
     def __getitem__(self, item):
         return "notmigrations"
-
-
